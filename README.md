@@ -17,6 +17,20 @@ Templates are compatible with the latest **stable** version of Android Studio.
 
 <img src="screenshots.png" alt="Screenshot">
 
+## Liquid Compose UI library
+
+This branch includes a Compose UI library (`liquidui`) that focuses on high-end liquid effects for bread-and-butter
+components like cards and modal bottom sheets. The implementation follows the guidance of GPU-first shader workflows
+and keeps effects in a single composition layer. Noise distortion is precomputed into a low-res texture so multiple
+cards can animate without extra per-pixel math.
+
+### Included components
+
+* `LiquidSurface` – the base RuntimeShader/SDF surface with touch ripples, haptics, and accelerometer-driven motion.
+* `LiquidCard` – card container with liquid edges and an optional border.
+* `LiquidModalBottomSheet` – modal bottom sheet built on `ModalBottomSheet` with the liquid surface applied.
+* `LiquidSplitCardDemo` – demo composable that starts as a drop, expands to a card, and splits into two cards on tap.
+
 ## Features
 
 ### 🖼️ UI
