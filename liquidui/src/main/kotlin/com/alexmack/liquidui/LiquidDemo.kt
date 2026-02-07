@@ -31,9 +31,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun LiquidSplitCardDemo(
     modifier: Modifier = Modifier,
+    useMotionController: Boolean = true,
+    motionState: LiquidMotionState = LiquidMotionState(),
 ) {
-    val motionController = rememberLiquidMotionController()
-    val motionState by motionController.state
+    val motionController = if (useMotionController) rememberLiquidMotionController() else null
+    val activeMotionState = if (motionController != null) {
+        val state by motionController.state
+        state
+    } else {
+        motionState
+    }
     val surfaceState = rememberLiquidSurfaceState(viscosity = 0.95f, cornerRadius = 120f)
     val expandProgress = remember { Animatable(0f) }
     val splitProgress = remember { Animatable(0f) }
@@ -74,7 +81,7 @@ fun LiquidSplitCardDemo(
                             .width(activeWidth)
                             .height(200.dp),
                         state = surfaceState,
-                        motionState = motionState,
+                        motionState = activeMotionState,
                         containerColor = Color(0xFF0C1924),
                     ) {
                         Column {
@@ -91,7 +98,7 @@ fun LiquidSplitCardDemo(
                             .height(200.dp)
                             .offset(x = -offsetAmount),
                         state = surfaceState,
-                        motionState = motionState,
+                        motionState = activeMotionState,
                         containerColor = Color(0xFF0C1924),
                     ) {
                         Column {
@@ -106,7 +113,7 @@ fun LiquidSplitCardDemo(
                             .height(200.dp)
                             .offset(x = offsetAmount),
                         state = surfaceState,
-                        motionState = motionState,
+                        motionState = activeMotionState,
                         containerColor = Color(0xFF0C1924),
                     ) {
                         Column {
