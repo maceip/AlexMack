@@ -1,9 +1,6 @@
 package com.alexmack.liquidui
 
-import androidx.compose.foundation.Indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.ripple.rememberRipple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -61,14 +58,14 @@ fun LiquidSurface(
     motionState: LiquidMotionState = LiquidMotionState(),
     noiseTexture: ImageBitmap = rememberLiquidNoiseTexture(),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    indication: Indication = rememberRipple(),
     content: @Composable () -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
     var size by remember { mutableStateOf(IntSize.Zero) }
-    val shaderWrapper = remember { LiquidShaderWrapper() }
+    val shaderWrapper = remember { createShaderWrapperOrNull() }
 
     LaunchedEffect(shaderWrapper, noiseTexture, state, motionState, size) {
+        if (shaderWrapper == null) return@LaunchedEffect
         var time = 0f
         while (isActive) {
             if (size != IntSize.Zero) {
@@ -88,10 +85,9 @@ fun LiquidSurface(
         }
     }
 
-    androidx.compose.foundation.Box(
+    androidx.compose.foundation.layout.Box(
         modifier = modifier
             .onSizeChanged { size = it }
-            .indication(interactionSource, indication)
             .pointerInput(state, interactionSource) {
                 awaitPointerEventScope {
                     while (true) {
@@ -109,9 +105,15 @@ fun LiquidSurface(
                     }
                 }
             }
-            .graphicsLayer {
-                renderEffect = shaderWrapper.renderEffect
-            },
+            .then(
+                if (shaderWrapper != null) {
+                    Modifier.graphicsLayer {
+                        renderEffect = shaderWrapper.renderEffect
+                    }
+                } else {
+                    Modifier
+                }
+            ),
     ) {
         content()
     }

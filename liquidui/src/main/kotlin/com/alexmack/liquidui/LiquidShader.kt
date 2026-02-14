@@ -3,6 +3,8 @@ package com.alexmack.liquidui
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.graphics.Shader
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
@@ -60,6 +62,7 @@ internal data class LiquidShaderInputs(
     val time: Float,
 )
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class LiquidShaderWrapper {
     private val shader = RuntimeShader(LiquidShaderCode)
     val renderEffect: RenderEffect = RenderEffect.createRuntimeShaderEffect(shader, "content")
@@ -83,6 +86,14 @@ internal class LiquidShaderWrapper {
                 Shader.TileMode.REPEAT,
             ),
         )
+    }
+}
+
+internal fun createShaderWrapperOrNull(): LiquidShaderWrapper? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        LiquidShaderWrapper()
+    } else {
+        null
     }
 }
 
