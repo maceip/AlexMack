@@ -9,9 +9,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -19,7 +21,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.yield
 
 @Stable
 class LiquidSurfaceState(
@@ -63,25 +64,29 @@ fun LiquidSurface(
     val haptics = LocalHapticFeedback.current
     var size by remember { mutableStateOf(IntSize.Zero) }
     val shaderWrapper = remember { createShaderWrapperOrNull() }
+    var shaderReady by remember { mutableStateOf(false) }
 
     LaunchedEffect(shaderWrapper, noiseTexture, state, motionState, size) {
         if (shaderWrapper == null) return@LaunchedEffect
-        var time = 0f
+        val startTime = withFrameMillis { it }
         while (isActive) {
-            if (size != IntSize.Zero) {
-                val inputs = LiquidShaderInputs(
-                    size = size,
-                    radius = state.cornerRadius,
-                    viscosity = state.viscosity,
-                    accel = motionState.accel,
-                    touchPoint = if (state.touchPoint.isSpecified()) state.touchPoint else Offset(0.5f, 0.5f),
-                    touchStrength = state.touchStrength,
-                    time = time,
-                )
-                shaderWrapper.update(inputs, noiseTexture)
+            withFrameMillis { frameTime ->
+                if (size != IntSize.Zero) {
+                    val time = (frameTime - startTime) / 1000f
+                    val touchPt = state.touchPoint
+                    val inputs = LiquidShaderInputs(
+                        size = size,
+                        radius = state.cornerRadius,
+                        viscosity = state.viscosity,
+                        accel = motionState.accel,
+                        touchPoint = if (touchPt.isSpecified()) touchPt else Offset(0.5f, 0.5f),
+                        touchStrength = state.touchStrength,
+                        time = time,
+                    )
+                    shaderWrapper.update(inputs, noiseTexture)
+                    if (!shaderReady) shaderReady = true
+                }
             }
-            time += 0.016f
-            yield()
         }
     }
 
@@ -106,9 +111,9 @@ fun LiquidSurface(
                 }
             }
             .then(
-                if (shaderWrapper != null) {
+                if (shaderWrapper != null && shaderReady) {
                     Modifier.graphicsLayer {
-                        renderEffect = shaderWrapper.renderEffect
+                        renderEffect = shaderWrapper.renderEffect.asComposeRenderEffect()
                     }
                 } else {
                     Modifier

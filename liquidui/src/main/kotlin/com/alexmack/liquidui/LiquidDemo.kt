@@ -23,7 +23,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import kotlinx.coroutines.launch
@@ -61,10 +64,28 @@ fun LiquidSplitCardDemo(
             .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {
+        val density = LocalDensity.current
         val baseWidth = maxWidth * 0.9f
         val gap = lerp(0.dp, 16.dp, splitProgress.value)
         val splitWidth = (baseWidth - gap) / 2
         val activeWidth = lerp(baseWidth, splitWidth, splitProgress.value)
+        val cardHeight = 200.dp
+
+        // Pixel dimensions for the shared global coordinate space.
+        // totalSize = the full combined bounding box that both cards share.
+        // Each card's cardOffset = where its top-left sits relative to totalSize center.
+        val totalWidthPx = with(density) { baseWidth.toPx().toInt() }
+        val totalHeightPx = with(density) { cardHeight.toPx().toInt() }
+        val combinedSize = IntSize(totalWidthPx, totalHeightPx)
+
+        val activeWidthPx = with(density) { activeWidth.toPx() }
+        val gapPx = with(density) { gap.toPx() }
+
+        // Each card's top-left x-position within the combined bounding box.
+        // Left card: starts at (totalWidth/2 - activeWidth - gap/2)
+        // Right card: starts at (totalWidth/2 + gap/2)
+        val leftEdge = (totalWidthPx / 2f) - activeWidthPx - (gapPx / 2f)
+        val rightEdge = (totalWidthPx / 2f) + (gapPx / 2f)
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -76,10 +97,11 @@ fun LiquidSplitCardDemo(
                 contentAlignment = Alignment.Center,
             ) {
                 if (splitProgress.value < 0.01f) {
+                    // Single card — cardOffset = (0,0), totalSize = card's own size (identity)
                     LiquidCard(
                         modifier = Modifier
                             .width(activeWidth)
-                            .height(200.dp),
+                            .height(cardHeight),
                         state = surfaceState,
                         motionState = activeMotionState,
                         containerColor = Color(0xFF0C1924),
@@ -95,11 +117,13 @@ fun LiquidSplitCardDemo(
                     LiquidCard(
                         modifier = Modifier
                             .width(activeWidth)
-                            .height(200.dp)
+                            .height(cardHeight)
                             .offset(x = -offsetAmount),
                         state = surfaceState,
                         motionState = activeMotionState,
                         containerColor = Color(0xFF0C1924),
+                        cardOffset = Offset(leftEdge, 0f),
+                        totalSize = combinedSize,
                     ) {
                         Column {
                             Text(text = "Left Card", color = Color.White)
@@ -110,11 +134,13 @@ fun LiquidSplitCardDemo(
                     LiquidCard(
                         modifier = Modifier
                             .width(activeWidth)
-                            .height(200.dp)
+                            .height(cardHeight)
                             .offset(x = offsetAmount),
                         state = surfaceState,
                         motionState = activeMotionState,
                         containerColor = Color(0xFF0C1924),
+                        cardOffset = Offset(rightEdge, 0f),
+                        totalSize = combinedSize,
                     ) {
                         Column {
                             Text(text = "Right Card", color = Color.White)
